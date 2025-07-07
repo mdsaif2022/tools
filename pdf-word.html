@@ -591,35 +591,8 @@
                 progressContainer.style.display = 'block';
                 convertBtn.disabled = true;
                 
-                // Create FormData for file upload
-                const formData = new FormData();
-                formData.append('pdfFile', selectedFile);
-                formData.append('format', document.getElementById('formatSelect').value);
-                formData.append('quality', document.getElementById('qualitySelect').value);
-                
-                // Simulate conversion progress (in production, use actual upload)
+                // Simulate conversion progress
                 simulateConversionProgress();
-                
-                // In production, you would use fetch API to send to server:
-                /*
-                fetch('/convert', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error('Conversion failed');
-                    return response.blob();
-                })
-                .then(blob => {
-                    convertedFileUrl = URL.createObjectURL(blob);
-                    conversionComplete();
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Conversion failed: ' + error.message);
-                    resetConverter();
-                });
-                */
             }
             
             function simulateConversionProgress() {
@@ -633,53 +606,73 @@
                     
                     if (progress === 100) {
                         clearInterval(interval);
-                        // For demo purposes, we're just completing the conversion
-                        // In production, this would be handled by the fetch response
-                        setTimeout(conversionComplete, 500);
+                        createDownloadableWordFile();
                     }
                 }, 300);
             }
             
-            function conversionComplete() {
-                // In a real app, you would have the actual converted file URL from the server
-                // For demo, we're just using a placeholder
-                convertedFileUrl = 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEsDBBQAAAAIA...'; // truncated for brevity
+            function createDownloadableWordFile() {
+                // Create a simple Word file content (simplified example)
+                const wordContent = `
+                    <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                    <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                        <w:body>
+                            <w:p>
+                                <w:r>
+                                    <w:t>This is a converted Word document from: ${selectedFile.name}</w:t>
+                                </w:r>
+                            </w:p>
+                            <w:p>
+                                <w:r>
+                                    <w:t>Originally uploaded: ${new Date().toLocaleString()}</w:t>
+                                </w:r>
+                            </w:p>
+                            <w:p>
+                                <w:r>
+                                    <w:t>In a real application, this would contain your actual PDF content converted to Word format.</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:body>
+                    </w:document>
+                `;
                 
+                // Create a Blob with the Word content
+                const blob = new Blob([wordContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                convertedFileUrl = URL.createObjectURL(blob);
+                
+                // Complete the conversion
+                conversionComplete();
+            }
+            
+            function conversionComplete() {
                 // Show result section
                 resultSection.style.display = 'block';
-                
-                // Scroll to result
                 resultSection.scrollIntoView({ behavior: 'smooth' });
-                
-                // Track conversion in analytics
-                if (typeof gtag !== 'undefined') {
-                    gtag('event', 'conversion', {
-                        'event_category': 'PDF Conversion',
-                        'event_label': 'PDF to Word'
-                    });
-                }
             }
             
             function downloadFile() {
                 if (!convertedFileUrl) return;
                 
-                // Create a temporary anchor element for download
                 const a = document.createElement('a');
                 a.href = convertedFileUrl;
-                a.download = selectedFile.name.replace('.pdf', '.docx') || 'converted.docx';
+                
+                // Set the download filename
+                const originalName = selectedFile.name;
+                const newName = originalName.endsWith('.pdf') 
+                    ? originalName.replace('.pdf', '.docx') 
+                    : originalName + '.docx';
+                
+                a.download = newName;
                 document.body.appendChild(a);
                 a.click();
-                document.body.removeChild(a);
                 
-                // Track download in analytics
-                if (typeof gtag !== 'undefined') {
-                    gtag('event', 'download', {
-                        'event_category': 'PDF Conversion',
-                        'event_label': 'Word Download'
-                    });
-                }
+                // Clean up
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(convertedFileUrl);
+                }, 100);
             }
-            
+
             function resetConverter() {
                 // Reset file input
                 fileInput.value = '';
@@ -713,19 +706,6 @@
             
             // Initialize AdSense ads
             (adsbygoogle = window.adsbygoogle || []).push({});
-            
-            // Load analytics script (example with Google Analytics)
-            (function() {
-                const gaScript = document.createElement('script');
-                gaScript.async = true;
-                gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID';
-                document.head.appendChild(gaScript);
-                
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', 'GA_MEASUREMENT_ID');
-            })();
         });
     </script>
 </body>
